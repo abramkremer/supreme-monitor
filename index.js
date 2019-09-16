@@ -1,5 +1,7 @@
 //import required moduled
 var request = require('request');
+const webhook = require('webhook-discord');
+const Hook = new webhook.Webhook('https://discordapp.com/api/webhooks/623047065471025153/GkmDAIxZ0pjs5ZNMqSENdczUonoC0UXt5rIpGFRggHE8NmICSVuwC1G6R1rejsm75zh9');
 
 //headers to pass supreme during requests
 var headers = {
@@ -23,8 +25,19 @@ function get_stock() {
     
                 //if the product doesn't currently exist in our data
                 if (!data.find((item) => item.id == new_products[product]["id"])) {
-                    console.log(new_products[product]["name"] + " is a new product. We've added it to local database!");
-                    data.push({"id": new_products[product]["id"], "name": new_products[product]["name"], "styles": []})
+
+                    data.push({"id": new_products[product]["id"], "name": new_products[product]["name"], "image_url": new_products[product]["image_url"], "styles": []})
+
+                    const msg = new webhook.MessageBuilder()
+                        .setName("Just loaded!")
+                        .setColor("#FF0000")
+                        .setText(new_products[product]["name"] + " just dropped! WOAH!")
+                        .setImage("https:" + new_products[product]["image_url"])
+                        .setTime();
+        
+                    Hook.send(msg);
+
+                    console.log(data)
                 }
     
                 var product_options = {
@@ -71,7 +84,16 @@ function get_product(product_id, product_options) {
 
                     if (supreme_stock_level == 1 && local_stock_level == 0) {
                         data[item_index]["styles"][style_index]["sizes"][size]["stock_level"] = 1;
-                        console.log("Woah! " + data[item_index]["name"] + " in " + data[item_index]["styles"][style_index]["name"] + " size " + data[item_index]["styles"][style_index]["sizes"][size]["name"] + " just restocked!!!")
+                        console.log("Woah! " + data[item_index]["name"] + " in " + data[item_index]["styles"][style_index]["name"] + " size " + data[item_index]["styles"][style_index]["sizes"][size]["name"] + " just restocked!!!");
+
+                        const msg = new webhook.MessageBuilder()
+                            .setName("Restock!")
+                            .setColor("#FF0000")
+                            .setText(data[item_index]["name"] + " in " + data[item_index]["styles"][style_index]["name"] + " size " + data[item_index]["styles"][style_index]["sizes"][size]["name"] + " just restocked!!!")
+                            .setImage("https:" + data[item_index]["image_url"])
+                            .setTime();
+        
+                        Hook.send(msg);
                     }
                     else if (supreme_stock_level == 0 && local_stock_level == 1) {
                         data[item_index]["styles"][style_index]["sizes"][size]["stock_level"] = 0;
@@ -85,7 +107,6 @@ function get_product(product_id, product_options) {
 let t;
 let interval = setInterval(
     (t = () => {
-        console.log("Getting stock");
         get_stock();
     }), 5000
 );
