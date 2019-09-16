@@ -39,15 +39,15 @@ request(stock_options, (error, response, stock) => {
 function get_product(product_id, product_options) {
     request(product_options,  (error, response, product) => {
         if (!error && response.statusCode == 200) {
-            var styles = JSON.parse(product)["styles"];
+            var product_styles = JSON.parse(product)["styles"];
     
-            for (var style = 0; style < styles.length; style++) {
+            for (var style = 0; style < product_styles.length; style++) {
 
-                //checks if style exists
-                if (data.find((item) => item.id == product_id)["styles"].find((color) => color.id == styles[style]["id"])) {
-                    
+                //if the style doesn't currently exist in our data
+                if (!data.find((item) => item.id == product_id)["styles"].find((color) => color.id == product_styles[style]["id"])) {
+                    var item_index = data.findIndex((item) => item.id == product_id);
+                    data[item_index]["styles"].push({"id": product_styles[style]["id"], "name": product_styles[style]["name"], "sizes": []});
                 }
-                    
             }
         }
     });
