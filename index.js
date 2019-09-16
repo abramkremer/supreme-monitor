@@ -14,17 +14,8 @@ var stock_options = {
 
 var data = [];
 
-function product_callback(error, response, product) {
-    if (!error && response.statusCode == 200) {
-        var styles = JSON.parse(product)["styles"];
-
-        for (var style = 0; style < styles.length; style++) {
-
-        }
-    }
-}
-
-function stock_callback(error, response, stock) {
+//gets entire new product stock
+request(stock_options, (error, response, stock) => {
     if (!error && response.statusCode == 200) {
         var new_products = JSON.parse(stock)["products_and_categories"]["new"];
         for (var product = 0; product < new_products.length; product++) {
@@ -39,9 +30,26 @@ function stock_callback(error, response, stock) {
                 headers: headers
             };
 
-            request(product_options, product_callback);
+            get_product(new_products[product]["id"], product_options)
         }
     }
+});
+
+//gets data regarding specific product
+function get_product(product_id, product_options) {
+    request(product_options,  (error, response, product) => {
+        if (!error && response.statusCode == 200) {
+            var styles = JSON.parse(product)["styles"];
+    
+            for (var style = 0; style < styles.length; style++) {
+
+                //checks if style exists
+                if (data.find((item) => item.id == product_id)["styles"].find((color) => color.id == styles[style]["id"])) {
+                    
+                }
+                    
+            }
+        }
+    });
 }
 
-request(stock_options, stock_callback);
