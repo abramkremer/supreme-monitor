@@ -30,6 +30,7 @@ request(stock_options, (error, response, stock) => {
                 headers: headers
             };
 
+            //should create two separate get_product function, one for items not currently in our data and one for products already in our data
             get_product(new_products[product]["id"], product_options)
         }
     }
@@ -47,7 +48,15 @@ function get_product(product_id, product_options) {
                 if (!data.find((item) => item.id == product_id)["styles"].find((color) => color.id == product_styles[style]["id"])) {
                     var item_index = data.findIndex((item) => item.id == product_id);
                     data[item_index]["styles"].push({"id": product_styles[style]["id"], "name": product_styles[style]["name"], "sizes": []});
+
+                    var style_index = data[item_index].findIndex((style) => style.id == product_styles[style]["id"]);
+                    
+                    for (var size = 0; size < product_styles[style]["style"].length; size++) {
+                        data[item_index]["styles"][style_index]["sizes"].push({"id": product_styles[style]["sizes"][size]["id"], "name": product_styles[style]["sizes"][size]["name"], "stock_level": product_styles[style]["sizes"][size]["stock_level"]})
+                    }
                 }
+
+                
             }
         }
     });
