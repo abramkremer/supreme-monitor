@@ -1,7 +1,7 @@
 //import required moduled
 var request = require('request');
 const webhook = require('webhook-discord');
-const Hook = new webhook.Webhook('https://discordapp.com/api/webhooks/623047065471025153/GkmDAIxZ0pjs5ZNMqSENdczUonoC0UXt5rIpGFRggHE8NmICSVuwC1G6R1rejsm75zh9');
+const Hook = new webhook.Webhook('INSERT_WEBHOOK_HERE');
 
 //headers to pass supreme during requests
 var headers = {
