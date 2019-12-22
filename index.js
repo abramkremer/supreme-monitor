@@ -1,7 +1,8 @@
 //import required moduled
 var request = require('request');
 const webhook = require('webhook-discord');
-const Hook = new webhook.Webhook('INSERT_WEBHOOK_HERE');
+const config = require("./config.json");
+const Hook = new webhook.Webhook(config.webhook);
 
 //headers to pass supreme during requests
 var headers = {
@@ -22,6 +23,11 @@ function get_stock() {
         if (!error && response.statusCode == 200) {
             var new_products = JSON.parse(stock)["products_and_categories"]["new"];
             for (var product = 0; product < new_products.length; product++) {
+
+                var product_options = {
+                    url: 'https://www.supremenewyork.com/shop/' + new_products[product]["id"] + '.json',
+                    headers: headers
+                };
     
                 //if the product doesn't currently exist in our data
                 if (!data.find((item) => item.id == new_products[product]["id"])) {
@@ -30,23 +36,20 @@ function get_stock() {
 
                     const msg = new webhook.MessageBuilder()
                         .setName("Just loaded!")
-                        .setColor("#FF0000")
-                        .setText(new_products[product]["name"] + " just dropped! WOAH!")
+                        .setColor("#00FF00")
+                        .setTitle("**" + new_products[product]["name"] + " just dropped! WOAH!**")
+                        .addField("Product link", 'https://www.supremenewyork.com/shop/' + new_products[product]["id"])
                         .setImage("https:" + new_products[product]["image_url"])
+                        .setFooter(config.group_name)
                         .setTime();
         
                     Hook.send(msg);
-
-                    console.log(data)
+                    
+                    get_new_product(new_products[product]["id"], product_options)
                 }
-    
-                var product_options = {
-                    url: 'https://www.supremenewyork.com/shop/' + new_products[product]["id"] + '.json',
-                    headers: headers
-                };
-    
-                //should create two separate get_product function, one for items not currently in our data and one for products already in our data
-                get_product(new_products[product]["id"], product_options)
+                else {
+                    get_product(new_products[product]["id"], product_options)
+                }
             }
         }
     });
@@ -58,51 +61,67 @@ function get_product(product_id, product_options) {
         if (!error && response.statusCode == 200) {
             var product_styles = JSON.parse(product)["styles"];
     
-            for (var style = 0; style < product_styles.length; style++) {
-
-                //if the style doesn't currently exist in our data
-                if (!data.find((item) => item.id == product_id)["styles"].find((color) => color.id == product_styles[style]["id"])) {
-                    var item_index = data.findIndex((item) => item.id == product_id);
-                    data[item_index]["styles"].push({"id": product_styles[style]["id"], "name": product_styles[style]["name"], "sizes": []});
-
-                    var style_id = product_styles[style]["id"];
-
-                    var style_index = data[item_index]["styles"].findIndex((style) => style.id == style_id);
-                    
-                    for (var size = 0; size < product_styles[style]["sizes"].length; size++) {
-                        data[item_index]["styles"][style_index]["sizes"].push({"id": product_styles[style]["sizes"][size]["id"], "name": product_styles[style]["sizes"][size]["name"], "stock_level": product_styles[style]["sizes"][size]["stock_level"]})
-                    }
-                }
-
-                for (var size = 0; size < product_styles[style]["sizes"].length; size++) {
-                    var item_index = data.findIndex((item) => item.id == product_id);
-                    var style_id = product_styles[style]["id"];
-                    var style_index = data[item_index]["styles"].findIndex((style) => style.id == style_id);
-
-                    var supreme_stock_level = product_styles[style]["sizes"][size]["stock_level"];
-                    var local_stock_level = data[item_index]["styles"][style_index]["sizes"][size]["stock_level"];
-
-                    if (supreme_stock_level == 1 && local_stock_level == 0) {
-                        data[item_index]["styles"][style_index]["sizes"][size]["stock_level"] = 1;
-                        console.log("Woah! " + data[item_index]["name"] + " in " + data[item_index]["styles"][style_index]["name"] + " size " + data[item_index]["styles"][style_index]["sizes"][size]["name"] + " just restocked!!!");
-
-                        const msg = new webhook.MessageBuilder()
-                            .setName("Restock!")
-                            .setColor("#FF0000")
-                            .setText(data[item_index]["name"] + " in " + data[item_index]["styles"][style_index]["name"] + " size " + data[item_index]["styles"][style_index]["sizes"][size]["name"] + " just restocked!!!")
-                            .setImage("https:" + data[item_index]["image_url"])
-                            .setTime();
-        
-                        Hook.send(msg);
-                    }
-                    else if (supreme_stock_level == 0 && local_stock_level == 1) {
-                        data[item_index]["styles"][style_index]["sizes"][size]["stock_level"] = 0;
-                    }
-                }
-            }
+            check_restock(product_styles, product_id);
         }
     });
 }
+
+//gets data regarding specific product
+function get_new_product(product_id, product_options) {
+    request(product_options,  (error, response, product) => {
+        if (!error && response.statusCode == 200) {
+            var product_styles = JSON.parse(product)["styles"];
+    
+            for (var style = 0; style < product_styles.length; style++) {
+
+                var item_index = data.findIndex((item) => item.id == product_id);
+                data[item_index]["styles"].push({"id": product_styles[style]["id"], "name": product_styles[style]["name"], "sizes": []});
+
+                var style_id = product_styles[style]["id"];
+
+                var style_index = data[item_index]["styles"].findIndex((style) => style.id == style_id);
+                    
+                for (var size = 0; size < product_styles[style]["sizes"].length; size++) {
+                    data[item_index]["styles"][style_index]["sizes"].push({"id": product_styles[style]["sizes"][size]["id"], "name": product_styles[style]["sizes"][size]["name"], "stock_level": product_styles[style]["sizes"][size]["stock_level"]});
+                }
+            }
+            check_restock(product_styles, product_id);
+        }
+    });
+}
+
+function check_restock(product_styles, product_id) {
+    for (var style = 0; style < product_styles.length; style++) {
+        for (var size = 0; size < product_styles[style]["sizes"].length; size++) {
+
+            var item_index = data.findIndex((item) => item.id == product_id);
+            var style_id = product_styles[style]["id"];
+            var style_index = data[item_index]["styles"].findIndex((style) => style.id == style_id);
+
+            var supreme_stock_level = product_styles[style]["sizes"][size]["stock_level"];
+            var local_stock_level = data[item_index]["styles"][style_index]["sizes"][size]["stock_level"];
+
+            if (supreme_stock_level == 1 && local_stock_level == 0) {
+                data[item_index]["styles"][style_index]["sizes"][size]["stock_level"] = 1;
+
+                const msg = new webhook.MessageBuilder()
+                    .setName("Restock!")
+                    .setColor("#FF0000")
+                    .setTitle(data[item_index]["name"] + " in " + data[item_index]["styles"][style_index]["name"] + " size " + data[item_index]["styles"][style_index]["sizes"][size]["name"] + " just restocked!!!")
+                    .addField("Product link", 'https://www.supremenewyork.com/shop/' + product_id)
+                    .setImage("https:" + data[item_index]["image_url"])
+                    .setFooter(config.group_name)
+                    .setTime();
+
+                Hook.send(msg);
+            }
+            else if (supreme_stock_level == 0 && local_stock_level == 1) {
+                data[item_index]["styles"][style_index]["sizes"][size]["stock_level"] = 0;
+            }
+        }
+    }
+}
+
 
 let t;
 let interval = setInterval(
