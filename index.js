@@ -11,7 +11,7 @@ var headers = {
 };
 
 var stock_options = {
-    url: 'https://www.supremenewyork.com/mobile_stock.json',
+    url: "https://www.supremenewyork.com/mobile_stock.json",
     headers: headers
 };
 
@@ -103,6 +103,7 @@ function check_restock(product_styles, product_id) {
 
             if (supreme_stock_level == 1 && local_stock_level == 0) {
                 data[item_index]["styles"][style_index]["sizes"][size]["stock_level"] = 1;
+                console.log("Woah! " + data[item_index]["name"] + " in " + data[item_index]["styles"][style_index]["name"] + " size " + data[item_index]["styles"][style_index]["sizes"][size]["name"] + " just restocked!!!");
 
                 const msg = new webhook.MessageBuilder()
                     .setName("Restock!")
@@ -126,7 +127,8 @@ function check_restock(product_styles, product_id) {
 let t;
 let interval = setInterval(
     (t = () => {
+        console.log("ayoooo");
         get_stock();
-    }), 5000
+    }), config.delay
 );
 t();
