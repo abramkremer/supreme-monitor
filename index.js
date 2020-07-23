@@ -127,7 +127,6 @@ function check_restock(product_styles, product_id) {
 let t;
 let interval = setInterval(
     (t = () => {
-        console.log("ayoooo");
         get_stock();
     }), config.delay
 );
